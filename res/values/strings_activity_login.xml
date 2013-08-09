@@ -1,0 +1,15 @@
+<resources>
+
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="email">Email</string>
+    <string name="log_in">Log in</string>
+    <string name="sign_up">Sign up</string>
+    <string name="sign_up_prompt">Don\'t have an account yet?</string>
+    <string name="login_progress_logging_in">Logging in&#8230;</string>
+    <string name="login_progress_signing_up">Signing up&#8230;</string>
+    <string name="error">Error</string>
+    <string name="login_error">Cannot login. Check your information and try again.</string>
+    <string name="sign_up_error">Cannot sign up. Check your information and try again.</string>
+
+</resources>

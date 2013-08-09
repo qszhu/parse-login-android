@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="qszhu.parse.login"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="8"
+        android:targetSdkVersion="17" />
+
+    <!--
+    copy below to target AndroidManifest.xml:
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    -->
+    <application>
+
+        <!--
+        copy below to target AndroidManifest.xml:
+
+        <activity android:name="qszhu.parse.login.LoginActivity" />
+        -->
+    </application>
+
+</manifest>
