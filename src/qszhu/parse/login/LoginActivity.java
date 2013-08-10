@@ -27,6 +27,164 @@ public class LoginActivity extends Activity {
 
     private static String TAG = LoginActivity.class.getCanonicalName();
 
+    public interface UserBackend {
+        interface Callback {
+            void success(Object result);
+
+            void error(Exception e);
+        }
+
+        void login(String username, String password, Callback callback);
+
+        void signUp(String username, String password, String email, Callback callback);
+    }
+
+    private static class ParseUserBackend implements UserBackend {
+
+        @Override
+        public void login(String username, String password,
+                final UserBackend.Callback callback) {
+            ParseUser.logInInBackground(username, password, new LogInCallback() {
+                @Override
+                public void done(ParseUser parseUser, ParseException e) {
+                    if (e != null) {
+                        callback.error(e);
+                    } else {
+                        callback.success(parseUser);
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void signUp(String username, String password, String email,
+                final UserBackend.Callback callback) {
+            ParseUser user = new ParseUser();
+            user.setUsername(username);
+            user.setPassword(password);
+            user.setEmail(email);
+            user.signUpInBackground(new SignUpCallback() {
+                @Override
+                public void done(ParseException e) {
+                    if (e != null) {
+                        callback.error(e);
+                    } else {
+                        callback.success(null);
+                    }
+                }
+            });
+        }
+
+    }
+
+    private UserBackend mUserBackend = new ParseUserBackend();
+
+    public void setUserBackend(UserBackend backend) {
+        mUserBackend = backend;
+    }
+
+    public interface LoginListener {
+        boolean onLogin(String username, String password);
+
+        void onLoginCompleted(Object user);
+
+        void onLoginError(Exception e);
+
+        void onLoginCancelled();
+    }
+
+    private LoginListener mLoginListener = new LoginListener() {
+
+        @Override
+        public boolean onLogin(String username, String password) {
+            mLoginUsername.setError(null);
+            mLoginPassword.setError(null);
+            if (TextUtils.isEmpty(username)) {
+                mLoginUsername.setError(getString(R.string.error_username_required));
+                mLoginUsername.requestFocus();
+                return false;
+            }
+            if (TextUtils.isEmpty(password)) {
+                mLoginPassword.setError(getString(R.string.error_password_required));
+                mLoginPassword.requestFocus();
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public void onLoginCompleted(Object user) {
+            finish();
+        }
+
+        @Override
+        public void onLoginError(Exception e) {
+            Log.d(TAG, e.getMessage());
+            showErrorDialog(R.string.error, R.string.login_error);
+        }
+
+        @Override
+        public void onLoginCancelled() {
+        }
+
+    };
+
+    public void setLoginListener(LoginListener listener) {
+        mLoginListener = listener;
+    }
+
+    public interface SignUpListener {
+        boolean onSignUp(String username, String password, String email);
+
+        void onSignUpCompleted();
+
+        void onSignUpError(Exception e);
+
+        void onSignUpCancelled();
+    }
+
+    private SignUpListener mSignUpListener = new SignUpListener() {
+
+        @Override
+        public boolean onSignUp(String username, String password, String email) {
+            mSignUpUsername.setError(null);
+            mSignUpPassword.setError(null);
+            if (TextUtils.isEmpty(username)) {
+                mSignUpUsername.setError(getString(R.string.error_username_required));
+                mSignUpUsername.requestFocus();
+                return false;
+            }
+            if (TextUtils.isEmpty(password)) {
+                mSignUpPassword.setError(getString(R.string.error_password_required));
+                mSignUpPassword.requestFocus();
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public void onSignUpCompleted() {
+            final String username = String.valueOf(mSignUpUsername.getText());
+            final String password = String.valueOf(mSignUpPassword.getText());
+            login(username, password);
+        }
+
+        @Override
+        public void onSignUpError(Exception e) {
+            Log.d(TAG, e.getMessage());
+            showErrorDialog(R.string.error, R.string.sign_up_error);
+        }
+
+        @Override
+        public void onSignUpCancelled() {
+        }
+
+    };
+
+    public void setSignUpListener(SignUpListener listener) {
+        mSignUpListener = listener;
+    }
+
     private EditText mLoginUsername, mLoginPassword;
     private EditText mSignUpUsername, mSignUpPassword, mSignUpEmail;
     private View mLoginFormView, mSignUpFormView, mStatusView;
@@ -99,69 +257,11 @@ public class LoginActivity extends Activity {
     public void onBackPressed() {
         if (mSignUpFormView.getVisibility() == View.VISIBLE) {
             switchView(mSignUpFormView, mLoginFormView);
-            onSignUpCancelled();
+            mSignUpListener.onSignUpCancelled();
             return;
         }
-        onLoginCancelled();
+        mLoginListener.onLoginCancelled();
         super.onBackPressed();
-    }
-
-    protected boolean onLogin(String username, String password) {
-        mLoginUsername.setError(null);
-        mLoginPassword.setError(null);
-        if (TextUtils.isEmpty(username)) {
-            mLoginUsername.setError(getString(R.string.error_username_required));
-            mLoginUsername.requestFocus();
-            return false;
-        }
-        if (TextUtils.isEmpty(password)) {
-            mLoginPassword.setError(getString(R.string.error_password_required));
-            mLoginPassword.requestFocus();
-            return false;
-        }
-        return true;
-    }
-
-    protected void onLoginComplete(ParseUser user) {
-        finish();
-    }
-
-    protected void onLoginError(ParseException e) {
-        Log.d(TAG, e.getMessage());
-        showErrorDialog(R.string.error, R.string.login_error);
-    }
-
-    protected void onLoginCancelled() {
-    }
-
-    protected boolean onSignUp(String username, String password, String email) {
-        mSignUpUsername.setError(null);
-        mSignUpPassword.setError(null);
-        if (TextUtils.isEmpty(username)) {
-            mSignUpUsername.setError(getString(R.string.error_username_required));
-            mSignUpUsername.requestFocus();
-            return false;
-        }
-        if (TextUtils.isEmpty(password)) {
-            mSignUpPassword.setError(getString(R.string.error_password_required));
-            mSignUpPassword.requestFocus();
-            return false;
-        }
-        return true;
-    }
-
-    protected void onSignUpComplete(ParseUser user) {
-        final String username = String.valueOf(mSignUpUsername.getText());
-        final String password = String.valueOf(mSignUpPassword.getText());
-        login(username, password);
-    }
-
-    protected void onSignUpError(ParseException e) {
-        Log.d(TAG, e.getMessage());
-        showErrorDialog(R.string.error, R.string.sign_up_error);
-    }
-
-    protected void onSignUpCancelled() {
     }
 
     private void signUp() {
@@ -169,27 +269,23 @@ public class LoginActivity extends Activity {
         final String password = String.valueOf(mSignUpPassword.getText());
         final String email = String.valueOf(mSignUpEmail.getText());
 
-        if (!onSignUp(username, password, email)) {
+        if (!mSignUpListener.onSignUp(username, password, email)) {
             return;
         }
-
-        final ParseUser user = new ParseUser();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setEmail(email);
 
         mStatusMessage.setText(R.string.login_progress_signing_up);
         switchView(mSignUpFormView, mStatusView);
 
-        user.signUpInBackground(new SignUpCallback() {
+        mUserBackend.signUp(username, password, email, new UserBackend.Callback() {
             @Override
-            public void done(ParseException e) {
-                if (e != null) {
-                    switchView(mStatusView, mSignUpFormView);
-                    onSignUpError(e);
-                    return;
-                }
-                onSignUpComplete(user);
+            public void success(Object result) {
+                mSignUpListener.onSignUpCompleted();
+            }
+
+            @Override
+            public void error(Exception e) {
+                switchView(mStatusView, mSignUpFormView);
+                mSignUpListener.onSignUpError(e);
             }
         });
     }
@@ -201,23 +297,24 @@ public class LoginActivity extends Activity {
     }
 
     private void login(String username, String password) {
-        if (!onLogin(username, password)) {
+        if (!mLoginListener.onLogin(username, password)) {
             return;
         }
 
         mStatusMessage.setText(R.string.login_progress_logging_in);
         switchView(mLoginFormView, mStatusView);
 
-        ParseUser.logInInBackground(username, password, new LogInCallback() {
+        mUserBackend.login(username, password, new UserBackend.Callback() {
             @Override
-            public void done(ParseUser parseUser, ParseException e) {
+            public void success(Object result) {
                 switchView(mStatusView, mLoginFormView);
+                mLoginListener.onLoginCompleted(result);
+            }
 
-                if (e != null) {
-                    onLoginError(e);
-                    return;
-                }
-                onLoginComplete(parseUser);
+            @Override
+            public void error(Exception e) {
+                switchView(mStatusView, mLoginFormView);
+                mLoginListener.onLoginError(e);
             }
         });
     }
