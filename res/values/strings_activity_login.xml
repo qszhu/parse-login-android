@@ -11,5 +11,7 @@
     <string name="error">Error</string>
     <string name="login_error">Cannot login. Check your information and try again.</string>
     <string name="sign_up_error">Cannot sign up. Check your information and try again.</string>
+    <string name="error_username_required">Username is required.</string>
+    <string name="error_password_required">Password is required.</string>
 
 </resources>
