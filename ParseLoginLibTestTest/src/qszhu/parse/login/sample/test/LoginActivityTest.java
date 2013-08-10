@@ -20,11 +20,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import qszhu.parse.login.LoginActivity;
-import qszhu.parse.login.LoginActivity.LoginListener;
-import qszhu.parse.login.LoginActivity.SignUpListener;
-import qszhu.parse.login.LoginActivity.UserBackend;
-import qszhu.parse.login.LoginActivity.UserBackend.Callback;
+import qszhu.parse.login.LoginListener;
 import qszhu.parse.login.R;
+import qszhu.parse.login.SignUpListener;
+import qszhu.parse.login.UserBackend;
+import qszhu.parse.login.UserBackend.Callback;
 
 public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginActivity> {
 
