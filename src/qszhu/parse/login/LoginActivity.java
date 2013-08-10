@@ -93,6 +93,15 @@ public class LoginActivity extends Activity {
         });
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mSignUpFormView.getVisibility() == View.VISIBLE) {
+            switchView(mSignUpFormView, mLoginFormView);
+            return;
+        }
+        super.onBackPressed();
+    }
+
     private void signUp() {
         final String username = String.valueOf(mSignUpUsername.getText());
         final String password = String.valueOf(mSignUpPassword.getText());
