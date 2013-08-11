@@ -98,7 +98,7 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
             }
         });
 
-        // callbacks
+        // Callbacks
         setUserBackend(this);
         setLoginListener(this);
         setSignUpListener(this);
@@ -151,6 +151,26 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
     }
 
     @Override
+    public String getErrorMessage(int errorCode) {
+        switch (errorCode) {
+            case 100:
+                return getString(R.string.error_network);
+            case 202:
+                return getString(R.string.error_duplicate_user);
+            case 203:
+                return getString(R.string.error_duplicate_email);
+            default:
+                return getString(R.string.login_error);
+        }
+    }
+
+    private void handleError(Exception e) {
+        ParseException pe = (ParseException) e;
+        Log.d(TAG, String.format("%d: %s", pe.getCode(), pe.getMessage()));
+        showErrorDialog(mUserBackend.getErrorMessage(pe.getCode()));
+    }
+
+    @Override
     public boolean onLogin(String username, String password) {
         mLoginUsername.setError(null);
         mLoginPassword.setError(null);
@@ -174,8 +194,7 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
 
     @Override
     public void onLoginError(Exception e) {
-        Log.d(TAG, e.getMessage());
-        showErrorDialog(R.string.error, R.string.login_error);
+        handleError(e);
     }
 
     @Override
@@ -208,8 +227,7 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
 
     @Override
     public void onSignUpError(Exception e) {
-        Log.d(TAG, e.getMessage());
-        showErrorDialog(R.string.error, R.string.sign_up_error);
+        handleError(e);
     }
 
     @Override
@@ -315,7 +333,11 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
         }
     }
 
-    protected final void showErrorDialog(int title, int message) {
+    protected final void showErrorDialog(String message) {
+        showErrorDialog(getString(R.string.error), message);
+    }
+
+    private void showErrorDialog(String title, String message) {
         new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)

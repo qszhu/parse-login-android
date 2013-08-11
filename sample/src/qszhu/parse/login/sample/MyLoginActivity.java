@@ -18,7 +18,7 @@ public class MyLoginActivity extends LoginActivity {
             return false;
         }
         if (password.length() < 8) {
-            this.showErrorDialog(R.string.error, R.string.error_password_length);
+            showErrorDialog(getString(R.string.error_password_length));
             return false;
         }
         return true;

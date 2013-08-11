@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.EditText;
 
 import com.jayway.android.robotium.solo.Solo;
+import com.parse.ParseException;
 
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -82,7 +83,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
     }
 
     /**
-     * should invokes backend when login
+     * should invoke backend when login
      */
     public void testLogin() {
         UserBackend backend = mock(UserBackend.class);
@@ -126,7 +127,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
         verifyNoMoreInteractions(listener);
     }
 
-    private UserBackend getMockLoginBackend(final boolean success) {
+    private UserBackend getMockLoginBackend(final boolean success, final int errorCode) {
         UserBackend backend = mock(UserBackend.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -135,7 +136,8 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
                 if (success) {
                     callback.success(null);
                 } else {
-                    callback.error(null);
+                    ParseException e = new ParseException(errorCode, "error");
+                    callback.error(e);
                 }
                 return null;
             }
@@ -147,7 +149,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
      * should invoke success callback when login succeeded
      */
     public void testLoginSuccess() {
-        UserBackend backend = getMockLoginBackend(true);
+        UserBackend backend = getMockLoginBackend(true, 0);
         getActivity().setUserBackend(backend);
         LoginListener listener = getMockLoginListener(true);
         getActivity().setLoginListener(listener);
@@ -163,7 +165,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
      * should invoke error callback when login failed
      */
     public void testLoginError() {
-        UserBackend backend = getMockLoginBackend(false);
+        UserBackend backend = getMockLoginBackend(false, 0);
         getActivity().setUserBackend(backend);
         LoginListener listener = getMockLoginListener(true);
         getActivity().setLoginListener(listener);
@@ -230,7 +232,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
         verifyNoMoreInteractions(listener);
     }
 
-    private UserBackend getMockSignUpBackend(final boolean success) {
+    private UserBackend getMockSignUpBackend(final boolean success, final int errorCode) {
         UserBackend backend = mock(UserBackend.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -239,7 +241,8 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
                 if (success) {
                     callback.success(null);
                 } else {
-                    callback.error(null);
+                    ParseException e = new ParseException(errorCode, "error");
+                    callback.error(e);
                 }
                 return null;
             }
@@ -251,7 +254,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
      * should invoke success callback when sign up succeeded
      */
     public void testSignUpSuccess() {
-        UserBackend backend = getMockSignUpBackend(true);
+        UserBackend backend = getMockSignUpBackend(true, 0);
         getActivity().setUserBackend(backend);
         SignUpListener listener = getMockSignUpListener(true);
         getActivity().setSignUpListener(listener);
@@ -267,7 +270,7 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
      * should invoke error callback when sign up failed
      */
     public void testSignUpError() {
-        UserBackend backend = getMockSignUpBackend(false);
+        UserBackend backend = getMockSignUpBackend(false, 0);
         getActivity().setUserBackend(backend);
         SignUpListener listener = getMockSignUpListener(true);
         getActivity().setSignUpListener(listener);
@@ -277,6 +280,28 @@ public class LoginActivityTest extends ActivityInstrumentationTestCase2<LoginAct
         verify(listener).onSignUp("foo", "bar", "foo@bar.com");
         verify(listener).onSignUpError(any(Exception.class));
         verifyNoMoreInteractions(listener);
+    }
+
+    /**
+     * should invoke backend when login failed
+     */
+    public void testLoginGetError() {
+        UserBackend backend = getMockLoginBackend(false, 400);
+        getActivity().setUserBackend(backend);
+
+        login("foo", "bar");
+        verify(backend).getErrorMessage(400);
+    }
+
+    /**
+     * should invoke backend when sign up failed
+     */
+    public void testSignUpGetError() {
+        UserBackend backend = getMockSignUpBackend(false, 401);
+        getActivity().setUserBackend(backend);
+
+        signUp("foo", "bar", "foo@bar.com");
+        verify(backend).getErrorMessage(401);
     }
 
 }

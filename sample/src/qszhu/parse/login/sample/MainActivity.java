@@ -17,6 +17,11 @@ public class MainActivity extends Activity {
 
         // for testing purpose, remove this line in production
         ParseUser.logOut();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
 
         ParseUser user = ParseUser.getCurrentUser();
         if (user == null) {
