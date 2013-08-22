@@ -2,7 +2,7 @@
 package qszhu.parse.login;
 
 public interface SignUpListener {
-    boolean onSignUp(String username, String password, String email);
+    void onSignUp(String username, String password, String email) throws Exception;
 
     void onSignUpCompleted();
 
