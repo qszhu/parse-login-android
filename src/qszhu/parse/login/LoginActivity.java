@@ -5,7 +5,9 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.text.TextUtils;
 
 import com.parse.LogInCallback;
@@ -16,6 +18,9 @@ import com.squareup.otto.Subscribe;
 
 import qszhu.parse.login.event.CancelLoginEvent;
 import qszhu.parse.login.event.CancelSignUpEvent;
+import qszhu.parse.login.event.HideProgressEvent;
+import qszhu.parse.login.event.LoginEvent;
+import qszhu.parse.login.event.ShowProgressEvent;
 import qszhu.parse.login.event.ShowSignUpFormEvent;
 import qszhu.parse.login.event.ValidationErrorEvent;
 
@@ -24,6 +29,7 @@ public class LoginActivity extends FragmentActivity implements UserBackend, Logi
 
     private LoginFragment mLoginFragment;
     private SignUpFragment mSignUpFragment;
+    private Fragment mCurrentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,9 +37,10 @@ public class LoginActivity extends FragmentActivity implements UserBackend, Logi
 
         mLoginFragment = new LoginFragment();
         mSignUpFragment = new SignUpFragment();
+        mCurrentFragment = mLoginFragment;
 
         getSupportFragmentManager().beginTransaction()
-                .add(android.R.id.content, mLoginFragment)
+                .add(android.R.id.content, mCurrentFragment)
                 .commit();
 
         // Callbacks
@@ -155,8 +162,9 @@ public class LoginActivity extends FragmentActivity implements UserBackend, Logi
     }
 
     @Override
-    public void onSignUpCompleted() {
-        getSupportFragmentManager().popBackStack();
+    public void onSignUpCompleted(String username, String password) {
+        popFragment();
+        LoginEventBus.post(new LoginEvent(username, password));
     }
 
     @Override
@@ -172,6 +180,7 @@ public class LoginActivity extends FragmentActivity implements UserBackend, Logi
     public void onBackPressed() {
         if (mSignUpFragment.isVisible()) {
             LoginEventBus.post(new CancelSignUpEvent());
+            mCurrentFragment = mLoginFragment;
         } else {
             LoginEventBus.post(new CancelLoginEvent());
         }
@@ -197,13 +206,34 @@ public class LoginActivity extends FragmentActivity implements UserBackend, Logi
                 .show();
     }
 
+    private void pushFragment(Fragment frag, boolean replace) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(android.R.id.content, frag);
+        if (!replace) {
+            ft.addToBackStack(null);
+        }
+        ft.commit();
+    }
+
+    private void popFragment() {
+        getSupportFragmentManager().popBackStack();
+    }
+
     public class EventHandler {
         @Subscribe
+        public void onShowProgress(ShowProgressEvent ev) {
+            pushFragment(ProgressFragment.getInstance(ev.getMessage()), true);
+        }
+
+        @Subscribe
+        public void onHideProgress(HideProgressEvent ev) {
+            pushFragment(mCurrentFragment, true);
+        }
+
+        @Subscribe
         public void onShowSignUpForm(ShowSignUpFormEvent ev) {
-            getSupportFragmentManager().beginTransaction()
-                    .addToBackStack(null)
-                    .replace(android.R.id.content, mSignUpFragment)
-                    .commit();
+            mCurrentFragment = mSignUpFragment;
+            pushFragment(mSignUpFragment, false);
         }
 
         @Subscribe

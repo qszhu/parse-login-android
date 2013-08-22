@@ -82,7 +82,7 @@ public class SignUpFragment extends Fragment {
                 @Override
                 public void success(Object result) {
                     LoginEventBus.post(new HideProgressEvent());
-                    mSignUpListener.onSignUpCompleted();
+                    mSignUpListener.onSignUpCompleted(username, password);
                 }
 
                 @Override

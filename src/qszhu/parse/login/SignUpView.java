@@ -7,19 +7,13 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.ViewSwitcher;
+import android.widget.FrameLayout;
 
-import com.squareup.otto.Subscribe;
-
-import qszhu.parse.login.event.HideProgressEvent;
-import qszhu.parse.login.event.ShowProgressEvent;
 import qszhu.parse.login.event.SignUpEvent;
 
-public class SignUpView extends ViewSwitcher implements OnClickListener {
+public class SignUpView extends FrameLayout implements OnClickListener {
 
     private EditText mSignUpUsername, mSignUpPassword, mSignUpEmail;
-    private TextView mProgressMessage;
     private Button mSignUpButton;
 
     public SignUpView(Context context) {
@@ -37,7 +31,6 @@ public class SignUpView extends ViewSwitcher implements OnClickListener {
         mSignUpUsername = (EditText) findViewById(R.id.sign_up_username);
         mSignUpPassword = (EditText) findViewById(R.id.sign_up_password);
         mSignUpEmail = (EditText) findViewById(R.id.sign_up_email);
-        mProgressMessage = (TextView) findViewById(R.id.progress_message);
         mSignUpButton = (Button) findViewById(R.id.sign_up_button);
 
         mSignUpButton.setOnClickListener(this);
@@ -58,32 +51,5 @@ public class SignUpView extends ViewSwitcher implements OnClickListener {
 
         LoginEventBus.post(new SignUpEvent(username, password, email));
     }
-
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        LoginEventBus.register(mEventHandler);
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        LoginEventBus.unregister(mEventHandler);
-    }
-
-    public class EventHandler {
-        @Subscribe
-        public void showProgress(ShowProgressEvent event) {
-            mProgressMessage.setText(event.getMessage());
-            showNext();
-        }
-
-        @Subscribe
-        public void hideProgress(HideProgressEvent event) {
-            showNext();
-        }
-    }
-
-    private EventHandler mEventHandler = new EventHandler();
 
 }

@@ -58,6 +58,4 @@
         </LinearLayout>
     </ScrollView>
 
-    <include layout="@layout/progress" />
-
 </qszhu.parse.login.SignUpView>
