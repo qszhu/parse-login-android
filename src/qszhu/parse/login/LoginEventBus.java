@@ -2,10 +2,11 @@
 package qszhu.parse.login;
 
 import com.squareup.otto.Bus;
+import com.squareup.otto.ThreadEnforcer;
 
 public class LoginEventBus {
 
-    private static final Bus sBus = new Bus();
+    private static final Bus sBus = new Bus(ThreadEnforcer.ANY);
 
     public static void post(Object ev) {
         sBus.post(ev);
