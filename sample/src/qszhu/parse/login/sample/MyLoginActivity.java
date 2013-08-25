@@ -13,15 +13,11 @@ public class MyLoginActivity extends LoginActivity {
     }
 
     @Override
-    public boolean onSignUp(String username, String password, String email) {
-        if (!super.onSignUp(username, password, email)) {
-            return false;
-        }
+    public void onSignUp(String username, String password, String email) throws Exception {
+        super.onSignUp(username, password, email);
         if (password.length() < 8) {
-            showErrorDialog(getString(R.string.error_password_length));
-            return false;
+            throw new Exception(getString(R.string.error_password_length));
         }
-        return true;
     }
 
 }
