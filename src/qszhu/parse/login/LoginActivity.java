@@ -1,102 +1,47 @@
 
 package qszhu.parse.login;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
-import android.widget.TextView;
 
 import com.parse.LogInCallback;
 import com.parse.ParseException;
 import com.parse.ParseUser;
 import com.parse.SignUpCallback;
+import com.squareup.otto.Subscribe;
 
-public class LoginActivity extends Activity implements UserBackend, LoginListener, SignUpListener {
+import qszhu.parse.login.event.CancelLoginEvent;
+import qszhu.parse.login.event.CancelSignUpEvent;
+import qszhu.parse.login.event.HideProgressEvent;
+import qszhu.parse.login.event.LoginEvent;
+import qszhu.parse.login.event.ShowProgressEvent;
+import qszhu.parse.login.event.ShowSignUpFormEvent;
+import qszhu.parse.login.event.ValidationErrorEvent;
 
-    private static String TAG = LoginActivity.class.getCanonicalName();
+public class LoginActivity extends FragmentActivity implements UserBackend, LoginListener,
+        SignUpListener {
 
-    private EditText mLoginUsername, mLoginPassword;
-    private EditText mSignUpUsername, mSignUpPassword, mSignUpEmail;
-    private View mLoginFormView, mSignUpFormView, mStatusView;
-    private TextView mStatusMessage;
-
-    private UserBackend mUserBackend;
-    private LoginListener mLoginListener;
-    private SignUpListener mSignUpListener;
+    private LoginFragment mLoginFragment;
+    private SignUpFragment mSignUpFragment;
+    private Fragment mCurrentFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
 
-        // UI entries
-        mLoginFormView = findViewById(R.id.login_form);
-        mLoginUsername = (EditText) findViewById(R.id.login_username);
-        mLoginPassword = (EditText) findViewById(R.id.login_password);
+        mLoginFragment = new LoginFragment();
+        mSignUpFragment = new SignUpFragment();
+        mCurrentFragment = mLoginFragment;
 
-        mSignUpFormView = findViewById(R.id.sign_up_form);
-        mSignUpUsername = (EditText) findViewById(R.id.sign_up_username);
-        mSignUpPassword = (EditText) findViewById(R.id.sign_up_password);
-        mSignUpEmail = (EditText) findViewById(R.id.sign_up_email);
-
-        mStatusView = findViewById(R.id.login_status);
-        mStatusMessage = (TextView) findViewById(R.id.login_status_message);
-
-        // Events
-        mLoginPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId,
-                    KeyEvent event) {
-                if (actionId == R.id.action_login
-                        || actionId == EditorInfo.IME_NULL) {
-                    login();
-                    return true;
-                }
-                return false;
-            }
-        });
-        mSignUpEmail.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId,
-                    KeyEvent event) {
-                if (actionId == R.id.action_sign_up
-                        || actionId == EditorInfo.IME_NULL) {
-                    signUp();
-                    return true;
-                }
-                return false;
-            }
-        });
-        findViewById(R.id.log_in_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                login();
-            }
-        });
-        findViewById(R.id.show_sign_up_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switchView(mLoginFormView, mSignUpFormView);
-            }
-        });
-        findViewById(R.id.sign_up_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                signUp();
-            }
-        });
+        getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, mCurrentFragment)
+                .commit();
 
         // Callbacks
         setUserBackend(this);
@@ -104,16 +49,29 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
         setSignUpListener(this);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LoginEventBus.register(mEventHandler);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LoginEventBus.unregister(mEventHandler);
+    }
+
     public void setUserBackend(UserBackend backend) {
-        mUserBackend = backend;
+        mLoginFragment.setUserBackend(backend);
+        mSignUpFragment.setUserBackend(backend);
     }
 
     public void setLoginListener(LoginListener listener) {
-        mLoginListener = listener;
+        mLoginFragment.setLoginListener(listener);
     }
 
     public void setSignUpListener(SignUpListener listener) {
-        mSignUpListener = listener;
+        mSignUpFragment.setSignUpListener(listener);
     }
 
     @Override
@@ -166,25 +124,17 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
 
     private void handleError(Exception e) {
         ParseException pe = (ParseException) e;
-        Log.d(TAG, String.format("%d: %s", pe.getCode(), pe.getMessage()));
-        showErrorDialog(mUserBackend.getErrorMessage(pe.getCode()));
+        showErrorDialog(getErrorMessage(pe.getCode()));
     }
 
     @Override
-    public boolean onLogin(String username, String password) {
-        mLoginUsername.setError(null);
-        mLoginPassword.setError(null);
+    public void onLogin(String username, String password) throws Exception {
         if (TextUtils.isEmpty(username)) {
-            mLoginUsername.setError(getString(R.string.error_username_required));
-            mLoginUsername.requestFocus();
-            return false;
+            throw new Exception(getString(R.string.error_username_required));
         }
         if (TextUtils.isEmpty(password)) {
-            mLoginPassword.setError(getString(R.string.error_password_required));
-            mLoginPassword.requestFocus();
-            return false;
+            throw new Exception(getString(R.string.error_password_required));
         }
-        return true;
     }
 
     @Override
@@ -202,27 +152,19 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
     }
 
     @Override
-    public boolean onSignUp(String username, String password, String email) {
-        mSignUpUsername.setError(null);
-        mSignUpPassword.setError(null);
+    public void onSignUp(String username, String password, String email) throws Exception {
         if (TextUtils.isEmpty(username)) {
-            mSignUpUsername.setError(getString(R.string.error_username_required));
-            mSignUpUsername.requestFocus();
-            return false;
+            throw new Exception(getString(R.string.error_username_required));
         }
         if (TextUtils.isEmpty(password)) {
-            mSignUpPassword.setError(getString(R.string.error_password_required));
-            mSignUpPassword.requestFocus();
-            return false;
+            throw new Exception(getString(R.string.error_password_required));
         }
-        return true;
     }
 
     @Override
-    public void onSignUpCompleted() {
-        final String username = String.valueOf(mSignUpUsername.getText());
-        final String password = String.valueOf(mSignUpPassword.getText());
-        login(username, password);
+    public void onSignUpCompleted(String username, String password) {
+        popFragment();
+        LoginEventBus.post(new LoginEvent(username, password));
     }
 
     @Override
@@ -236,104 +178,16 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
 
     @Override
     public void onBackPressed() {
-        if (mSignUpFormView.getVisibility() == View.VISIBLE) {
-            switchView(mSignUpFormView, mLoginFormView);
-            mSignUpListener.onSignUpCancelled();
-            return;
+        if (mSignUpFragment.isVisible()) {
+            LoginEventBus.post(new CancelSignUpEvent());
+            mCurrentFragment = mLoginFragment;
+        } else {
+            LoginEventBus.post(new CancelLoginEvent());
         }
-        mLoginListener.onLoginCancelled();
         super.onBackPressed();
     }
 
-    private void signUp() {
-        final String username = String.valueOf(mSignUpUsername.getText());
-        final String password = String.valueOf(mSignUpPassword.getText());
-        final String email = String.valueOf(mSignUpEmail.getText());
-
-        if (!mSignUpListener.onSignUp(username, password, email)) {
-            return;
-        }
-
-        mStatusMessage.setText(R.string.login_progress_signing_up);
-        switchView(mSignUpFormView, mStatusView);
-
-        mUserBackend.signUp(username, password, email, new UserBackend.Callback() {
-            @Override
-            public void success(Object result) {
-                mSignUpListener.onSignUpCompleted();
-            }
-
-            @Override
-            public void error(Exception e) {
-                switchView(mStatusView, mSignUpFormView);
-                mSignUpListener.onSignUpError(e);
-            }
-        });
-    }
-
-    private void login() {
-        final String username = String.valueOf(mLoginUsername.getText());
-        final String password = String.valueOf(mLoginPassword.getText());
-        login(username, password);
-    }
-
-    private void login(String username, String password) {
-        if (!mLoginListener.onLogin(username, password)) {
-            return;
-        }
-
-        mStatusMessage.setText(R.string.login_progress_logging_in);
-        switchView(mLoginFormView, mStatusView);
-
-        mUserBackend.login(username, password, new UserBackend.Callback() {
-            @Override
-            public void success(Object result) {
-                switchView(mStatusView, mLoginFormView);
-                mLoginListener.onLoginCompleted(result);
-            }
-
-            @Override
-            public void error(Exception e) {
-                switchView(mStatusView, mLoginFormView);
-                mLoginListener.onLoginError(e);
-            }
-        });
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void switchView(final View viewToHide, final View viewToShow) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(
-                    android.R.integer.config_shortAnimTime);
-
-            viewToShow.setVisibility(View.VISIBLE);
-            viewToShow.animate()
-                    .setDuration(shortAnimTime)
-                    .alpha(1)
-                    .setListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            viewToShow.setVisibility(View.VISIBLE);
-                        }
-                    });
-
-            viewToHide.setVisibility(View.VISIBLE);
-            viewToHide.animate()
-                    .setDuration(shortAnimTime)
-                    .alpha(0)
-                    .setListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            viewToHide.setVisibility(View.GONE);
-                        }
-                    });
-        } else {
-            viewToShow.setVisibility(View.VISIBLE);
-            viewToHide.setVisibility(View.GONE);
-        }
-    }
-
-    protected final void showErrorDialog(String message) {
+    private void showErrorDialog(String message) {
         showErrorDialog(getString(R.string.error), message);
     }
 
@@ -351,5 +205,43 @@ public class LoginActivity extends Activity implements UserBackend, LoginListene
                 })
                 .show();
     }
+
+    private void pushFragment(Fragment frag, boolean replace) {
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(android.R.id.content, frag);
+        if (!replace) {
+            ft.addToBackStack(null);
+        }
+        ft.commit();
+    }
+
+    private void popFragment() {
+        getSupportFragmentManager().popBackStack();
+    }
+
+    public class EventHandler {
+        @Subscribe
+        public void onShowProgress(ShowProgressEvent ev) {
+            pushFragment(ProgressFragment.getInstance(ev.getMessage()), true);
+        }
+
+        @Subscribe
+        public void onHideProgress(HideProgressEvent ev) {
+            pushFragment(mCurrentFragment, true);
+        }
+
+        @Subscribe
+        public void onShowSignUpForm(ShowSignUpFormEvent ev) {
+            mCurrentFragment = mSignUpFragment;
+            pushFragment(mSignUpFragment, false);
+        }
+
+        @Subscribe
+        public void onValidationError(ValidationErrorEvent ev) {
+            showErrorDialog(ev.getException().getMessage());
+        }
+    }
+
+    private EventHandler mEventHandler = new EventHandler();
 
 }
